@@ -1,0 +1,116 @@
+<html lang="Ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Исходящая почта</title>
+    <link rel="stylesheet" href="./styles/index.css" />
+  </head>
+  <body class="body">
+    <header class="header">
+      <div class="header__logo">
+        <span>Регистрация корреспонденции</span>
+      </div>
+      <div class="header__menu">
+        <a href="/" class="header__menu-item header__menu-item_active">Исходящая почта</a>
+        <a href="/incoming-mail" class="header__menu-item">Входящая почта</a>
+        <a href="/search" class="header__menu-item">Поиск по базе</a>
+        <button class="header__menu-item" id="relogin">Другой пользователь</button>
+      </div>
+    </header>
+    <main class="main">
+      <form class="registration" type="submit">
+        <div class="input-field">
+          <select class="input" id="companySender">
+            <option value="">Выберите компанию отправителя</option>
+            <option value="ООО «СпецСтройЭксперт»">ООО &laquo;СпецСтройЭксперт&raquo;</option>
+            <option value="ООО «СпецСтройЭксперт+»">ООО &laquo;СпецСтройЭксперт&raquo; (Плантация)</option>
+            <option value="ООО НПП «СТРОЙСИСТЕМА»">ООО НПП &laquo;СТРОЙСИСТЕМА&raquo;</option>
+            <option value="ООО «Смарт Инжиниринг»">ООО &laquo;Смарт Инжиниринг&raquo;</option>
+            <option value="ООО «ЭТЕРНУМ ТЕХ»">ООО &laquo;ЭТЕРНУМ ТЕХ&raquo;</option>
+            <option value="ООО «ФСС-10»">ООО &laquo;ФСС-10&raquo;</option>
+          </select>
+          <div class="input__arrow">
+            <svg width="30" height="30" viewBox="0 0 30 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="30" height="30" />
+              <g id="Frame 5">
+                <g id="Rectangle 4">
+                  <mask id="path-1-inside-1_0_1" fill="white">
+                    <path d="M15.1421 0L29.2843 14.1421L15.1421 28.2843L1 14.1421L15.1421 0Z" />
+                  </mask>
+                  <path
+                    d="M15.1421 28.2843L13.7279 29.6985L15.1421 31.1127L16.5563 29.6985L15.1421 28.2843ZM27.8701 12.7279L13.7279 26.8701L16.5563 29.6985L30.6985 15.5563L27.8701 12.7279ZM16.5563 26.8701L2.41421 12.7279L-0.414213 15.5563L13.7279 29.6985L16.5563 26.8701Z"
+                    fill="black"
+                    mask="url(#path-1-inside-1_0_1)"
+                  />
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="input-field">
+          <input class="input" type="text" name="company-reciever" id="companyReciever" placeholder="Введите компанию получателя" />
+        </div>
+        <div class="input-field">
+          <input class="input" type="text" name="letter-theme" id="letterTheme" placeholder="Введите тему письма" />
+        </div>
+        <div class="input-field">
+          <input class="input" type="text" name="reciever-name" id="recieverName" placeholder="Введите ФИО и должность получателя" />
+        </div>
+        <div class="input-field input-field_wide">
+          <textarea class="input input__textarea" placeholder="Введите текст письма" name="letterText" id="letterText" cols="30" rows="20"></textarea>
+        </div>
+        <div class="input-field">
+          <label class="field-label" for="dateField">Дата отправления</label>
+          <input class="input input__date input__date_disabled" type="date" name="date" id="dateField" />
+          <div class="input__edit">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M14.7563 3.36828C15.0812 3.04333 15.0812 2.50174 14.7563 2.19345L12.8066 0.243716C12.4983 -0.0812387 11.9567 -0.0812387 11.6317 0.243716L10.0986 1.7685L13.2232 4.89307M0 11.8754V15H3.12457L12.34 5.77628L9.21539 2.65171L0 11.8754Z"
+                fill="#999999"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="input-field">
+          <input class="button button_disabled" type="submit" name="button" id="button" value="Сформировать" />
+        </div>
+      </form>
+    </main>
+
+    <div class="popup" id="popup-login">
+      <div class="popup__window login">
+        <form action="submit" class="login__form">
+          <input class="input" type="email" name="login" id="login" placeholder="E-mail" />
+          <input class="input" type="password" name="password" id="password" placeholder="Пароль" />
+          <input class="button" type="submit" value="Войти" id="login-button" />
+        </form>
+      </div>
+    </div>
+    <div class="popup" id="popup-check">
+      <div class="popup__window preview">
+        <div class="preview__letter">
+          <div class="preview__title">Проверьте письмо на правильность заполнения</div>
+          <div class="preview__header">
+            <p class="preview__sender">Компания отправитель: <span class="preview__sender-value">####</span></p>
+            <p class="preview__reciever">Компания получатель: <span class="preview__reciever-value">####</span></p>
+            <p class="preview__reciever-name">ФИО и должность получателя: <span class="preview__name-value">####</span></p>
+            <p class="preview__theme">Тема письма: <span class="preview__theme-value">####</span></p>
+          </div>
+          <div class="preview__text-wrapper">
+            <p>Текст письма:</p>
+            <p class="preview__text">#####</p>
+          </div>
+          <div class="preview__footer">
+            <p class="preview__date">Дата письма: <span class="preview__date-value">####</span></p>
+          </div>
+        </div>
+        <div class="preview__buttons">
+          <button class="button" id="changeLetter">Исправить</button>
+          <div><button class="button" id="saveLetter">Сохранить</button></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="scripts/index.js"></script>
+  </body>
+</html>

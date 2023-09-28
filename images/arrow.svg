@@ -1,0 +1,11 @@
+<svg width="30" height="35" viewBox="0 0 30 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="30" height="35" fill="#F5F5F5"/>
+<g id="Frame 5">
+<g id="Rectangle 4">
+<mask id="path-1-inside-1_0_1" fill="white">
+<path d="M15.1421 0L29.2843 14.1421L15.1421 28.2843L1 14.1421L15.1421 0Z"/>
+</mask>
+<path d="M15.1421 28.2843L13.7279 29.6985L15.1421 31.1127L16.5563 29.6985L15.1421 28.2843ZM27.8701 12.7279L13.7279 26.8701L16.5563 29.6985L30.6985 15.5563L27.8701 12.7279ZM16.5563 26.8701L2.41421 12.7279L-0.414213 15.5563L13.7279 29.6985L16.5563 26.8701Z" fill="black" mask="url(#path-1-inside-1_0_1)"/>
+</g>
+</g>
+</svg>
