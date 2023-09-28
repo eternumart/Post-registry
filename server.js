@@ -99,3 +99,9 @@ async function readDataFromBase(address) {
   const sql = `SELECT "OBJECT_ID", "OBJECT_ADDRESS", "OBJECT_DATA" FROM public."parsedData" WHERE "OBJECT_ADDRESS" = '${address}'`;
   return client.query(sql);
 }
+
+
+
+// SELECT "username" FROM "users" - выбрать столбец с юзернеймами
+// INSERT INTO public."users" ("username", "password", "name", "isAdmin") VALUES ('sli@sste.ru', 'Es12345678', 'Лев', FALSE) - вставить данные в таблицу
+// SELECT * FROM "users" WHERE "username"  LIKE 'sli@sste.ru' - ищет пользователя в базе
