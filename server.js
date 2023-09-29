@@ -4,6 +4,7 @@ import pkg from "pg";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import fs from "fs";
+import { sign } from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,18 +22,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage, limits: { fileSize: 1e10 } });
-
-const users = {
-  // must be in DataBase
-  "ged@sste.ru": {
-    password: "Crazy19",
-    isAdmin: true,
-  },
-  "sli@sste.ru": {
-    password: "Es12345678",
-    isAdmin: false,
-  },
-};
 
 // Настройка получения запросов с фронта на бек
 app.use(express.json());
@@ -63,6 +52,29 @@ app.post("/save-data", (req, res) => {
     return res.sendStatus(400);
   }
   setDataToBase(req.body);
+  res.send({ loaded: true });
+});
+
+app.post("/get-login", async (req, res) => {
+  if (!req.body) {
+    return res.sendStatus(400);
+  }
+  let signIn = {
+    loginIsPossible: false,
+    username: "",
+    isAdmin: false,
+  };
+  const reqData = req.body;
+  const resData = await getLoginFromDataBase(reqData);
+
+  if (resData.username === reqData.username && resData.password === reqData.password) {
+    signIn.loginIsPossible = true;
+    signIn.username = resData.username;
+  }
+  if (resData.isAdmin) {
+    signIn.isAdmin = true;
+  }
+  res.send(signIn).end();
 });
 
 // Задаем верное имя файлу
@@ -90,18 +102,29 @@ await client.connect();
 
 // Запись данных в базу
 async function setDataToBase(data) {
-  const sql = `INSERT INTO public."post" ("sender", "reciever", "date", "text", "user", "theme") VALUES ('${data.companySender}', '${data.companyReciever}', '${data.dateField}', '${data.letterText}', '${data.currentUser}, '${data.letteTheme}'')`;
-  client.query(sql);
-}
-
-// Чтение данных базы
-async function readDataFromBase(address) {
-  const sql = `SELECT "OBJECT_ID", "OBJECT_ADDRESS", "OBJECT_DATA" FROM public."parsedData" WHERE "OBJECT_ADDRESS" = '${address}'`;
+  const lastId = await getCurrentLastId();
+  const newId = Number(lastId.rows[0].max) + 1;
+  const sql = `INSERT INTO "post" ("id", "sender", "reciever", "date", "text", "user", "theme") VALUES ('${newId}', '${data.companySender}', '${data.companyReciever}', '${data.dateField}', '${data.letterText}', '${data.currentUser}', '${data.letteTheme}')`;
   return client.query(sql);
 }
 
+async function getCurrentLastId() {
+  const sql = `SELECT MAX(id) FROM "post"`;
+  return client.query(sql);
+}
 
+// Чтение данных базы
+async function getLoginFromDataBase(data) {
+  const sqlLogin = `SELECT * FROM "users" WHERE "username"  LIKE '${data.username}'`;
+  const prepareData = await client.query(sqlLogin);
+  if (prepareData.rowCount === 0) {
+    return [{ username: "", isAdmin: "false", password: "", name: "" }];
+  }
+  const userData = prepareData.rows;
+  console.log(prepareData);
+  return userData[0];
+}
 
 // SELECT "username" FROM "users" - выбрать столбец с юзернеймами
 // INSERT INTO public."users" ("username", "password", "name", "isAdmin") VALUES ('sli@sste.ru', 'Es12345678', 'Лев', FALSE) - вставить данные в таблицу
-// SELECT * FROM "users" WHERE "username"  LIKE 'sli@sste.ru' - ищет пользователя в базе
+// SELECT * FROM "users" WHERE "sli@sobaka.ru"  LIKE 'sli@sste.ru' - ищет пользователя в базе

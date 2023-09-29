@@ -79,9 +79,16 @@
 
     <div class="popup" id="popup-login">
       <div class="popup__window login">
-        <form action="submit" class="login__form">
-          <input class="input" type="email" name="login" id="login" placeholder="E-mail" />
-          <input class="input" type="password" name="password" id="password" placeholder="Пароль" />
+        <form action="submit" class="login__form" novalidate>
+          <div>
+            <input class="input" type="email" name="login" id="login" placeholder="E-mail" />
+            <span id="emailError"></span>
+          </div>
+          <div>
+            <input class="input" type="password" name="password" id="password" placeholder="Пароль" />
+            <span id="passwordError"></span>
+          </div>
+
           <input class="button" type="submit" value="Войти" id="login-button" />
         </form>
       </div>
@@ -106,7 +113,10 @@
         </div>
         <div class="preview__buttons">
           <button class="button" id="changeLetter">Исправить</button>
-          <div><button class="button" id="saveLetter">Сохранить</button></div>
+          <div class="preview__error-wrapper">
+            <button class="button" id="saveLetter">Сохранить</button>
+            <span class="preview__error">Не удалось сохранить в базу</span>
+          </div>
         </div>
       </div>
     </div>
