@@ -1,15 +1,26 @@
-import express, { response } from "express";
+import express from "express";
 import multer from "multer";
 import pkg from "pg";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import fs from "fs";
-import { sign } from "crypto";
+import * as fs from "fs";
+import { Document, Packer, Paragraph, TextRun } from "docx";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const { Client } = pkg;
 const app = express();
+
+const serverConfig = {
+  ip: {
+    buhgalteriya: "192.168.13.16",
+    servernaya: "192.168.0.60",
+    home: "192.168.0.105",
+  },
+  port: 3000,
+};
+
+const currentDEVIP = serverConfig.ip.servernaya;
 
 // Настройка загрузки файлов с фронта на бек
 const storage = multer.diskStorage({
@@ -30,11 +41,12 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Запуск сервера Node.JS
-app.listen(3000, (err) => {
+app.listen(serverConfig.port, currentDEVIP, (err) => {
   if (err) {
+    console.log(serverConfig.port, currentDEVIP);
     console.log(err);
   } else {
-    console.log("Server started on localhost:3000");
+    console.log(`Server started on ${currentDEVIP}:${serverConfig.port}`);
   }
 });
 
@@ -47,18 +59,22 @@ app.get("/incoming-mail", (req, res) => {
   res.sendFile(__dirname + "/incoming-mail.html");
 });
 
+// Запрос на сохранение данных с фронта
 app.post("/save-data", (req, res) => {
   if (!req.body) {
     return res.sendStatus(400);
   }
-  setDataToBase(req.body);
-  res.send({ loaded: true });
+  // setDataToBase(req.body);
+  const data = convertDataToDocx(req.body);
+  res.send({ DB: true, Docx: true, filename: data.filename, dataText: data.data });
 });
 
+//Запрос авторизации с фронта
 app.post("/get-login", async (req, res) => {
   if (!req.body) {
     return res.sendStatus(400);
   }
+  // возвращаемые параметры на фронт
   let signIn = {
     loginIsPossible: false,
     username: "",
@@ -67,6 +83,7 @@ app.post("/get-login", async (req, res) => {
   const reqData = req.body;
   const resData = await getLoginFromDataBase(reqData);
 
+  // Проверка правильности логина/пароля
   if (resData.username === reqData.username && resData.password === reqData.password) {
     signIn.loginIsPossible = true;
     signIn.username = resData.username;
@@ -74,7 +91,14 @@ app.post("/get-login", async (req, res) => {
   if (resData.isAdmin) {
     signIn.isAdmin = true;
   }
+
+  // Ответ на фронт о возможности авторизации
   res.send(signIn).end();
+});
+
+app.get("/download", async (req, res) => {
+  console.log("FileName: " + req.query.filename);
+  res.sendFile(`${__dirname}\\docs\\${req.query.filename}.docx`);
 });
 
 // Задаем верное имя файлу
@@ -85,6 +109,50 @@ function getNormalName(file) {
   return normalName;
 }
 
+// Конвертация данных с фронта в DocX документ
+function convertDataToDocx(data) {
+  const sender = data.companySender;
+  const reciever = data.companyReciever;
+  const recieverName = data.recieverName;
+  const theme = data.letterTheme;
+  const letterText = data.letterText;
+  const prepareText = letterText.split("\n");
+
+  // Documents contain sections, you can have multiple sections per document, go here to learn more about sections
+  // This simple example will only contain one section
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun(`"Hello World"`),
+              new TextRun({
+                text: " Foo Bar",
+                bold: true,
+              }),
+              new TextRun({
+                text: " Github is the best",
+                bold: true,
+              }),
+            ],
+          }),
+        ],
+      },
+    ],
+  });
+
+  // Used to export the file into a .docx file
+
+  Packer.toBuffer(doc).then((buffer) => {
+    fs.writeFileSync(`docs/draft.docx`, buffer);
+  });
+  // Done! A file called 'My Document.docx' will be in your file system.
+
+  return "draft";
+}
+
 // Декодируем строки в кириллицу
 function decoderStrings(string) {
   return decodeURIComponent(string);
@@ -92,7 +160,7 @@ function decoderStrings(string) {
 
 //PostgreSQL connection
 const client = new Client({
-  host: "localhost",
+  host: currentDEVIP,
   port: 3001,
   database: "postgres",
   user: "postgres",
@@ -100,7 +168,7 @@ const client = new Client({
 });
 await client.connect();
 
-// Запись данных в базу
+// Запись данных письма в базу
 async function setDataToBase(data) {
   const lastId = await getCurrentLastId();
   const newId = Number(lastId.rows[0].max) + 1;
@@ -108,12 +176,13 @@ async function setDataToBase(data) {
   return client.query(sql);
 }
 
+// Забираем корректный ID из базы
 async function getCurrentLastId() {
   const sql = `SELECT MAX(id) FROM "post"`;
   return client.query(sql);
 }
 
-// Чтение данных базы
+// Чтение данных о логине/пароле из базы
 async function getLoginFromDataBase(data) {
   const sqlLogin = `SELECT * FROM "users" WHERE "username"  LIKE '${data.username}'`;
   const prepareData = await client.query(sqlLogin);
@@ -121,7 +190,6 @@ async function getLoginFromDataBase(data) {
     return [{ username: "", isAdmin: "false", password: "", name: "" }];
   }
   const userData = prepareData.rows;
-  console.log(prepareData);
   return userData[0];
 }
 

@@ -26,9 +26,15 @@ const letterDate = checkPopup.querySelector(".preview__date-value");
 const changeLetterButton = checkPopup.querySelector("#changeLetter");
 const saveLetterButton = checkPopup.querySelector("#saveLetter");
 const saveLetterError = checkPopup.querySelector(".preview__error");
+const downloadLetterButton = checkPopup.querySelector("#downloadLetter");
 
+// Конфиг для запросов на бек
 const fetchConfig = {
-  host: "http://localhost:3000",
+  address: {
+    protocol: "http://",
+    host: `${document.location.hostname}`,
+    port: `:${document.location.port}`,
+  },
   methods: {
     post: "POST",
     get: "GET",
@@ -36,12 +42,15 @@ const fetchConfig = {
   addresses: {
     saveData: "/save-data",
     getLogin: "/get-login",
+    download: "/download",
   },
   contentTypes: {
     json: "application/json;charset=utf-8",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   },
 };
 
+// Тексты ошибок для валидации
 const errors = {
   email: {
     empty: "Поле не должно быть пустым",
@@ -55,6 +64,8 @@ const errors = {
   },
 };
 
+//Обработчики событий
+
 form.addEventListener("submit", handlerFormSubmit);
 form.addEventListener("input", checkEmptyInputs);
 inputDateEditBtn.addEventListener("click", editDate);
@@ -67,12 +78,16 @@ saveLetterButton.addEventListener("click", () => {
   const data = localStorage.getItem("previousLetter");
   sendData(data, fetchConfig.addresses.saveData, fetchConfig.methods.post, fetchConfig.contentTypes.json);
 });
+downloadLetterButton.addEventListener("click", () => {
+  const fileName = downloadLetterButton.dataset.filename;
+  downloadLetter(fetchConfig.addresses.download, fileName);
+  closePopup(checkPopup);
+});
 
+// Сбор данных из полей для ввода
 function handlerFormSubmit(evt) {
-  if (!checkPopup.classList.contains("popup_visible")) {
-    return;
-  }
   evt.preventDefault();
+
   const data = new Object();
 
   formFields.forEach((field) => {
@@ -84,6 +99,13 @@ function handlerFormSubmit(evt) {
   saveLetterCopy(data);
 }
 
+// Смена кнопки "сохранить" на кнопку "скачать" и обратно
+function changeCheckPopupButtons() {
+  saveLetterButton.parentElement.classList.toggle("preview__error-wrapper_hidden");
+  downloadLetterButton.parentElement.classList.toggle("preview__error-wrapper_hidden");
+}
+
+// Сохранение копии письма в браузер для передачи на бек
 function saveLetterCopy(data) {
   if (localStorage.getItem("previousLetter")) {
     localStorage.removeItem("previousLetter");
@@ -93,8 +115,40 @@ function saveLetterCopy(data) {
   }
 }
 
+// Запрос docx файла с бека и обработка байтных данных
+async function downloadLetter(way, fileName) {
+  await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}?filename=${fileName}`, {
+    method: fetchConfig.methods.get,
+    headers: {
+      "Content-Type": fetchConfig.contentTypes.docx,
+    },
+  })
+    .then(checkResponse)
+    .then((res) => {
+      return res.blob();
+    })
+    .then((res) => {
+      return URL.createObjectURL(res);
+    })
+    .then((res) => {
+      saveByteArray(res);
+    });
+}
+
+// Скачивание docx файла на фронте
+function saveByteArray(objectURL) {
+  const a = document.createElement("a");
+  a.setAttribute("href", objectURL);
+  a.setAttribute("download", `draft.docx`);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectURL);
+}
+
+// Отправка данных на бекенд (логин, запросы, сохранения)
 async function sendData(data, way, method, contentType) {
-  await fetch(`${fetchConfig.host}${way}`, {
+  await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
     method: method,
     headers: {
       "Content-Type": contentType,
@@ -116,17 +170,19 @@ async function sendData(data, way, method, contentType) {
     });
 }
 
-const checkResponse = (res) => {
+// Проверка ответов сервера
+function checkResponse(res) {
   if (res.ok) {
     return res;
   }
   return Promise.reject(`Ошибка: ${res.status}`);
-};
+}
 
+// Финальная обработка полученных с бека данных на фронте
 function final(res, way) {
   if ((way = fetchConfig.addresses.saveData) && checkPopup.classList.contains("popup_visible")) {
     saveLetterError.classList.remove("preview__error_visible");
-    closePopup(checkPopup);
+    changeCheckPopupButtons();
   }
   if ((way = fetchConfig.addresses.getLogin)) {
     if (!res.loginIsPossible) {
@@ -144,6 +200,7 @@ function final(res, way) {
   }
 }
 
+// Заполнение попапа "проверки" письма  перед сохранением
 function checkDataPopup(data) {
   sender.textContent = data.companySender;
   reciever.textContent = data.companyReciever;
@@ -158,6 +215,7 @@ function checkDataPopup(data) {
   openPopup(checkPopup);
 }
 
+// Очистка попапа "проверки" письма после сохранения
 function cleanPopup() {
   sender.textContent = "";
   reciever.textContent = "";
@@ -167,6 +225,7 @@ function cleanPopup() {
   letterDate.textContent = "";
 }
 
+// Проверка на незаполненность полей
 function checkEmptyInputs() {
   for (let i = 0; i < formInputs.length; i++) {
     formData[i] = formInputs[i].value;
@@ -181,6 +240,7 @@ function checkEmptyInputs() {
   }
 }
 
+// Установка текущей даты в инпут с датой
 function setDateToInput() {
   const date = new Date();
   let currentDay = date.getDate();
@@ -196,6 +256,7 @@ function setDateToInput() {
   inputDate.value = currentDate;
 }
 
+// Открытие возможности редактирования даты для админа
 function editDate() {
   inputDate.classList.remove("input__date_disabled");
   inputDate.classList.add("input__date_active");
@@ -203,17 +264,20 @@ function editDate() {
   inputDate.click();
 }
 
+// Проверка пользователя на админские права
 function checkUser() {
   if (!JSON.parse(localStorage.getItem("currentUser")).isAdmin) {
     blockUserFunctions();
   }
 }
 
+// Блокировка функций для не админа
 function blockUserFunctions() {
   inputDate.classList.add("input__date_disabled");
   inputDateEditBtn.classList.add("input__edit_hidden");
 }
 
+// Проверка на прошлые залогинивания
 function checkLogin() {
   if (localStorage.getItem("currentUser")) {
     const localData = JSON.parse(localStorage.getItem("currentUser"));
@@ -224,6 +288,7 @@ function checkLogin() {
   }
 }
 
+// Авторизация
 async function handlerLogin(evt) {
   if (!popupLogin.classList.contains("popup_visible")) {
     return;
@@ -280,11 +345,13 @@ function closeByEscape(event) {
   }
 }
 
+// Выход из профиля
 function logOut() {
   localStorage.removeItem("currentUser");
   location.reload();
 }
 
+// Валидация полей авторизации
 function loginValidation() {
   loginInput.addEventListener("input", loginValidation);
   passwordInput.addEventListener("input", loginValidation);
@@ -328,5 +395,6 @@ function loginValidation() {
   return validationOk;
 }
 
+// Проверяем пользоваателя на админа и устанавливаем текущую дату в инпут при инициализации
 checkLogin();
 setDateToInput();

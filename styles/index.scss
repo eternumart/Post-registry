@@ -438,6 +438,10 @@ input[type="file"]::file-selector-button {
     flex-direction: column;
     position: relative;
     align-items: center;
+
+    &_hidden {
+      display: none;
+    }
   }
 
   &__error {

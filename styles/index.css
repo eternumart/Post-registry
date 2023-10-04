@@ -408,6 +408,9 @@ input[type=file]::file-selector-button:hover {
   position: relative;
   align-items: center;
 }
+.preview__error-wrapper_hidden {
+  display: none;
+}
 .preview__error {
   position: absolute;
   bottom: -20px;
