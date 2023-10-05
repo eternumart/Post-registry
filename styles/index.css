@@ -380,6 +380,13 @@ input[type=file]::file-selector-button:hover {
 .preview .preview__text {
   color: #000;
 }
+.preview__paragraph {
+  color: #000 !important;
+  margin-bottom: 10px;
+}
+.preview__paragraph:last-of-type {
+  margin-bottom: 0;
+}
 .preview__text-wrapper {
   margin-bottom: 30px;
 }

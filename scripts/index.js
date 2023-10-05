@@ -91,7 +91,11 @@ function handlerFormSubmit(evt) {
   const data = new Object();
 
   formFields.forEach((field) => {
-    data[field.id] = field.value;
+    if (field.id === "letterText") {
+      data[field.id] = field.value.split("\n");
+    } else {
+      data[field.id] = field.value;
+    }
   });
   data.currentUser = JSON.parse(localStorage.getItem("currentUser")).login;
 
@@ -148,6 +152,7 @@ function saveByteArray(objectURL) {
 
 // Отправка данных на бекенд (логин, запросы, сохранения)
 async function sendData(data, way, method, contentType) {
+  debugger;
   await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
     method: method,
     headers: {
@@ -158,11 +163,12 @@ async function sendData(data, way, method, contentType) {
     .then(checkResponse)
     .catch((err) => {
       console.error(err);
-      if ((way = fetchConfig.addresses.saveData) && checkPopup.classList.contains("popup_visible")) {
+      if ((way === fetchConfig.addresses.saveData) && checkPopup.classList.contains("popup_visible")) {
         saveLetterError.classList.add("preview__error_visible");
       }
     })
     .then((res) => {
+      console.log(res);
       return res.json();
     })
     .then((res) => {
@@ -200,15 +206,23 @@ function final(res, way) {
   }
 }
 
-// Заполнение попапа "проверки" письма  перед сохранением
+// Заполнение попапа "проверки" письма перед сохранением
 function checkDataPopup(data) {
+  const prepareParagraphs = data.letterText;
+  const prerpareDate = data.dateField.split("-");
+
   sender.textContent = data.companySender;
   reciever.textContent = data.companyReciever;
   recieverName.textContent = data.recieverName;
   theme.textContent = data.letterTheme;
-  letterText.textContent = data.letterText;
-
-  const prerpareDate = data.dateField.split("-");
+  prepareParagraphs.forEach((paragraph) => {
+    if (paragraph !== "") {
+      const p = document.createElement("p");
+      p.classList.add("preview__paragraph");
+      p.textContent = paragraph;
+      letterText.appendChild(p, true);
+    }
+  });
 
   letterDate.textContent = `${prerpareDate[2]}.${prerpareDate[1]}.${prerpareDate[0]}`;
   saveLetterError.classList.remove("preview__error_visible");
@@ -217,12 +231,16 @@ function checkDataPopup(data) {
 
 // Очистка попапа "проверки" письма после сохранения
 function cleanPopup() {
+  const paragraphs = letterText.querySelectorAll(".preview__paragraph");
   sender.textContent = "";
   reciever.textContent = "";
   recieverName.textContent = "";
   theme.textContent = "";
-  letterText.textContent = "";
   letterDate.textContent = "";
+
+  paragraphs.forEach((p) => {
+    p.remove();
+  });
 }
 
 // Проверка на незаполненность полей
@@ -340,7 +358,7 @@ function closePopupByOverlay(evt) {
 
 function closeByEscape(event) {
   if (event.key === "Escape") {
-    const openedPopUp = document.querySelector(".popup_opened");
+    const openedPopUp = document.querySelector(".popup_visible");
     closePopup(openedPopUp);
   }
 }

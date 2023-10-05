@@ -406,6 +406,15 @@ input[type="file"]::file-selector-button {
     color: #000;
   }
 
+  &__paragraph {
+    color: #000 !important;
+    margin-bottom: 10px;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+
   &__text-wrapper {
     margin-bottom: 30px;
   }
