@@ -152,7 +152,6 @@ function saveByteArray(objectURL) {
 
 // Отправка данных на бекенд (логин, запросы, сохранения)
 async function sendData(data, way, method, contentType) {
-  debugger;
   await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
     method: method,
     headers: {
