@@ -6,6 +6,7 @@ const inputDateWrapper = form.querySelector(".input__date").parentElement;
 const inputDate = inputDateWrapper.querySelector(".input__date");
 const inputDateEditBtn = inputDateWrapper.querySelector(".input__edit");
 const formFields = form.querySelectorAll(".input");
+const companySender = form.querySelector("#companySender");
 const formData = [];
 const allPopups = document.querySelectorAll(".popup");
 const loginForm = document.querySelector(".login__form");
@@ -79,7 +80,7 @@ saveLetterButton.addEventListener("click", () => {
   sendData(data, fetchConfig.addresses.saveData, fetchConfig.methods.post, fetchConfig.contentTypes.json);
 });
 downloadLetterButton.addEventListener("click", () => {
-  const fileName = downloadLetterButton.dataset.filename;
+  const fileName = companySender.value;
   downloadLetter(fetchConfig.addresses.download, fileName);
   closePopup(checkPopup);
 });
@@ -143,7 +144,7 @@ async function downloadLetter(way, fileName) {
 function saveByteArray(objectURL) {
   const a = document.createElement("a");
   a.setAttribute("href", objectURL);
-  a.setAttribute("download", `draft.docx`);
+  a.setAttribute("download", `patchedDoc.docx`);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -167,10 +168,10 @@ async function sendData(data, way, method, contentType) {
       }
     })
     .then((res) => {
-      console.log(res);
       return res.json();
     })
     .then((res) => {
+      console.log(res)
       final(res, way);
     });
 }

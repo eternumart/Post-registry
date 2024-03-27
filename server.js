@@ -4,7 +4,7 @@ import pkg from "pg";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import * as fs from "fs";
-import { Document, Packer, Paragraph, TextRun, UnderlineType, AlignmentType, HeadingLevel } from "docx";
+import { ExternalHyperlink, HeadingLevel, ImageRun, Paragraph, patchDocument, PatchType, Table, TableCell, TableRow, TextDirection, TextRun, VerticalAlign } from "docx";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -118,183 +118,37 @@ function convertDataToDocx(data) {
 	const letterTextArr = data.letterText;
 	const user = data.currentUser;
 	const date = data.dateField;
+	let letterTextReady = "";
 
-	const fontStyles = {
-		h1Title: {
-			id: "Heading1",
-			name: "Heading 1",
-			basedOn: "Normal",
-			next: "Normal",
-			quickFormat: true,
-			
-			run: {
-				size: 64,
-				bold: true,
-				italics: false,
-				color: "000000",
-				alignment: AlignmentType.CENTER,
-			},
-			paragraph: {
-				spacing: {
-					after: 120,
-				},
-			},
-		},
-		h2Title: {
-			id: "Heading2",
-			name: "Heading 2",
-			basedOn: "Normal",
-			next: "Normal",
-			quickFormat: true,
-			run: {
-				size: 34,
-				bold: false,
-			},
-			paragraph: {
-				spacing: {
-					before: 240,
-					after: 120,
-				},
-			},
-		},
-		asideText: {
-			id: "aside",
-			name: "Aside",
-			basedOn: "Normal",
-			next: "Normal",
-			run: {
-				color: "999999",
-				italics: true,
-			},
-			paragraph: {
-				indent: {
-					left: 720,
-				},
-				spacing: {
-					line: 276,
-				},
-			},
-		},
-		wellSpaced: {
-			id: "wellSpaced",
-			name: "Well Spaced",
-			basedOn: "Normal",
-			quickFormat: true,
-			paragraph: {
-				spacing: {
-					line: 276,
-					before: 20 * 72 * 0.1,
-					after: 20 * 72 * 0.05,
-				},
-			},
-		},
-		listParagraph: {
-			id: "ListParagraph",
-			name: "List Paragraph",
-			basedOn: "Normal",
-			quickFormat: true,
-		}
-	}
-
-	const formatVariations = {
-		h1Title: new Paragraph({
-			text: `${theme}`,
-			heading: HeadingLevel.HEADING_1,
-		}),
-		usualText: new Paragraph(`${letterTextArr}`),
-	}
-
-	const doc = new Document({
-		creator: `${user}`,
-		title: `Письмо от ${date}`,
-		description: `${theme}`,
-		styles: {
-			paragraphStyles: [fontStyles.h1Title, fontStyles.h2Title, fontStyles.asideText, fontStyles.wellSpaced, fontStyles.listParagraph],
-		},
-		numbering: {
-			config: [
-				{
-					reference: "numbering",
-					levels: [
-						{
-							level: 0,
-							format: "lowerLetter",
-							text: "%1)",
-							alignment: AlignmentType.LEFT,
-						},
-					],
-				},
-			],
-		},
-		sections: [
-			{
-				children: [
-
-					new Paragraph({
-						text: "Test heading2 with double red underline",
-						heading: HeadingLevel.HEADING_2,
-					}),
-					new Paragraph({
-						text: "Option1",
-						numbering: {
-							reference: "my-crazy-numbering",
-							level: 0,
-						},
-					}),
-					new Paragraph({
-						text: "Option5 -- override 2 to 5",
-						numbering: {
-							reference: "my-crazy-numbering",
-							level: 0,
-						},
-					}),
-					new Paragraph({
-						text: "Option3",
-						numbering: {
-							reference: "my-crazy-numbering",
-							level: 0,
-						},
-					}),
-					new Paragraph({
-						children: [
-							new TextRun({
-								text: "Some monospaced content",
-								font: {
-									name: "Monospace",
-								},
-							}),
-						],
-					}),
-					new Paragraph({
-						text: "An aside, in light gray italics and indented",
-						style: "aside",
-					}),
-					new Paragraph({
-						children: [
-							new TextRun({
-								text: "This is a bold run,",
-								bold: true,
-							}),
-							new TextRun(" switching to normal "),
-							new TextRun({
-								text: "and then underlined ",
-								underline: {},
-							}),
-							new TextRun({
-								text: "and back to normal.",
-							}),
-						],
-					}),
-				],
-			},
-		],
+	letterTextArr.forEach((piece) => {
+		letterTextReady += piece;
 	});
 
-	Packer.toBuffer(doc).then((buffer) => {
-		fs.writeFileSync(`docs/draft.docx`, buffer);
+	patchDocument(fs.readFileSync("templates/Korneeva.docx"), {
+		patches: {
+			text_patch: {
+				type: PatchType.DOCUMENT,
+				children: createChildrenArr(letterTextArr),
+			},
+			date_patch: {
+				type: PatchType.PARAGRAPH,
+				children: [new TextRun(date)],
+			},
+		},
+	}).then((doc) => {
+		fs.writeFileSync("docs/patchedDoc.docx", doc);
 	});
 
-	return "draft";
+	return "patchedDoc";
+}
+
+function createChildrenArr(letterTextArr) {
+	const resultArr = [];
+	letterTextArr.forEach((string) => {
+		let paragraph = new Paragraph(string);
+		resultArr.push(paragraph);
+	});
+	return resultArr;
 }
 
 // Декодируем строки в кириллицу

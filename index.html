@@ -22,12 +22,13 @@
         <div class="input-field">
           <select class="input" id="companySender">
             <option value="">Выберите компанию отправителя</option>
-            <option value="ООО «СпецСтройЭксперт»">ООО &laquo;СпецСтройЭксперт&raquo;</option>
-            <option value="ООО «СпецСтройЭксперт+»">ООО &laquo;СпецСтройЭксперт&raquo; (Плантация)</option>
-            <option value="ООО НПП «СТРОЙСИСТЕМА»">ООО НПП &laquo;СТРОЙСИСТЕМА&raquo;</option>
-            <option value="ООО «Смарт Инжиниринг»">ООО &laquo;Смарт Инжиниринг&raquo;</option>
-            <option value="ООО «ЭТЕРНУМ ТЕХ»">ООО &laquo;ЭТЕРНУМ ТЕХ&raquo;</option>
-            <option value="ООО «ФСС-10»">ООО &laquo;ФСС-10&raquo;</option>
+            <option value="sse">ООО &laquo;СпецСтройЭксперт&raquo;</option>
+            <option value="ssePlus">ООО &laquo;СпецСтройЭксперт&raquo; (Плантация)</option>
+            <option value="npp">ООО НПП &laquo;СТРОЙСИСТЕМА&raquo;</option>
+            <option value="eternumArt">ООО &laquo;Этернум Арт&raquo;</option>
+            <option value="eternumTech">ООО &laquo;ЭТЕРНУМ ТЕХ&raquo;</option>
+            <option value="fss">ООО &laquo;ФСС-10&raquo;</option>
+            <option value="korneeva">ИП Корнеева С.В.</option>
           </select>
           <div class="input__arrow">
             <svg width="30" height="30" viewBox="0 0 30 35" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,11 +82,11 @@
       <div class="popup__window login">
         <form action="submit" class="login__form" novalidate>
           <div>
-            <input class="input" type="email" name="login" id="login" placeholder="E-mail" />
+            <input class="input" autocomplete type="email" name="login" id="login" placeholder="E-mail" />
             <span id="emailError"></span>
           </div>
           <div>
-            <input class="input" type="password" name="password" id="password" placeholder="Пароль" />
+            <input class="input" autocomplete type="password" name="password" id="password" placeholder="Пароль" />
             <span id="passwordError"></span>
           </div>
 
@@ -116,11 +117,11 @@
         <div class="preview__buttons">
           <button class="button" id="changeLetter">Исправить</button>
           <div class="preview__error-wrapper">
-            <button class="button" id="saveLetter">Сохранить</button>
+            <button class="button" id="saveLetter">Оставить</button>
             <span class="preview__error">Не удалось сохранить в базу</span>
           </div>
           <div class="preview__error-wrapper preview__error-wrapper_hidden">
-            <button class="button" id="downloadLetter" data-filename="draft">Скачать .docx</button>
+            <button class="button" id="downloadLetter" data-filename="##">Скачать .docx</button>
             <span class="preview__error">Не удалось загрузить файл</span>
           </div>
         </div>
