@@ -19,8 +19,8 @@ const loginButton = loginForm.querySelector("#login-button");
 const reLoginButton = document.querySelector("#reLogin");
 const checkPopup = document.querySelector("#popup-check");
 const sender = checkPopup.querySelector(".preview__sender-value");
-const receiver = checkPopup.querySelector(".preview__receiver-value");
-const receiverName = checkPopup.querySelector(".preview__name-value");
+const reciever = checkPopup.querySelector(".preview__reciever-value");
+const recieverName = checkPopup.querySelector(".preview__name-value");
 const theme = checkPopup.querySelector(".preview__theme-value");
 const letterText = checkPopup.querySelector(".preview__text");
 const editorInstance = CKEDITOR.instances["letterText"];
@@ -80,12 +80,16 @@ saveLetterButton.addEventListener("click", async () => {
   const token = sessionStorage.getItem("sessionToken");
   const data = JSON.parse(localStorage.getItem("previousLetter")) || {};
   data.token = token;
+  console.log("Отправляемые данные:", data);
+  console.log("URL:", `${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${fetchConfig.addresses.saveData}`);
+  console.log("Метод:", fetchConfig.methods.post);
+  console.log("Content-Type:", fetchConfig.contentTypes.json);
 
   sendData(data, fetchConfig.addresses.saveData, fetchConfig.methods.post, fetchConfig.contentTypes.json);
 });
 downloadLetterButton.addEventListener("click", () => {
   const token = sessionStorage.getItem("sessionToken");
-  const fileName = `document_${token}.docx`;
+  const fileName = `document_${token}`;
   downloadLetter(fetchConfig.addresses.download, fileName, token);
 });
 // Привязка функции к событиям
@@ -114,10 +118,7 @@ function handlerFormSubmit(evt) {
     if (field.id === "letterText") {
       // CKEditor берет данные вместо этого поля
       const editorContent = editorInstance ? editorInstance.getData().trim() : "";
-      const plainText = editorContent.replace(/<[^>]+>/g, ""); // Удаляем HTML-теги
-      data[field.id] = plainText || "Нет данных";
-    } else if (field.id === "dateField") {
-      data[field.id] = prepareDate();
+      data[field.id] = editorContent || "<p>Нет данных</p>";
     } else {
       data[field.id] = field.value;
     }
@@ -146,35 +147,21 @@ function saveLetterCopy(data) {
 }
 
 // Запрос docx файла с бека и обработка байтных данных
-async function downloadLetter(way, filename) {
-  try {
-    const token = sessionStorage.getItem("sessionToken");
-    const response = await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
-      method: fetchConfig.methods.post,
-      headers: {
-        "Content-Type": fetchConfig.contentTypes.json,
-      },
-      body: JSON.stringify({ filename, token }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ошибка: ${response.status}`);
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-
-    saveByteArray(url, filename);
-  } catch (error) {
-    console.error("Ошибка при скачивании документа:", error.message);
-  }
+async function downloadLetter(way, token) {
+  await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}?token=${token}`, {
+    method: fetchConfig.methods.get,
+  })
+    .then(checkResponse)
+    .then((res) => res.blob())
+    .then((res) => URL.createObjectURL(res))
+    .then((res) => saveByteArray(res));
 }
 
 // Скачивание docx файла на фронте
-function saveByteArray(objectURL, filename) {
+function saveByteArray(objectURL) {
   const a = document.createElement("a");
   a.setAttribute("href", objectURL);
-  a.setAttribute("download", filename); // Используем токен вместо timestamp
+  a.setAttribute("download", `document_${timestamp}.docx`);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -183,31 +170,27 @@ function saveByteArray(objectURL, filename) {
 
 // Отправка данных на бекенд (логин, запросы, сохранения)
 async function sendData(data, way, method, contentType) {
-  console.log("Отправляемые данные:", data);
-  try {
-    const response = await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
-      method: method,
-      headers: {
-        "Content-Type": contentType,
-      },
-      body: contentType === fetchConfig.contentTypes.json ? JSON.stringify(data) : data,
+  await fetch(`${fetchConfig.address.protocol}${fetchConfig.address.host}${fetchConfig.address.port}${way}`, {
+    method: method,
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: contentType === "application/json" ? JSON.stringify(data) : data,
+  })
+    .then(checkResponse)
+    .catch((err) => {
+      console.error("Ошибка при отправке данных:", err);
+      if (way === fetchConfig.addresses.saveData && checkPopup.classList.contains("popup_visible")) {
+        saveLetterError.classList.add("preview__error_visible");
+      }
+    })
+    .then((res) => {
+      return res.json();
+    })
+    .then((res) => {
+      console.log("Ответ от сервера:", res);
+      final(res, way);
     });
-
-    if (!response.ok) {
-      console.error(`Ошибка сервера: ${response.status}`);
-      throw new Error(`Ошибка: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log("Ответ от сервера:", result);
-
-    final(result, way);
-
-    return result;
-  } catch (error) {
-    console.error("Ошибка при запросе:", error.message);
-    throw error;
-  }
 }
 
 // Проверка ответов сервера
@@ -224,7 +207,7 @@ function final(res, way) {
     saveLetterError.classList.remove("preview__error_visible");
     changeCheckPopupButtons();
   }
-  if (way === fetchConfig.addresses.getLogin) {
+  if ((way = fetchConfig.addresses.getLogin)) {
     if (!res.loginIsPossible) {
       loginInput.classList.add("input__error");
       passwordInput.classList.add("input__error");
@@ -242,32 +225,29 @@ function final(res, way) {
 
 // Заполнение попапа "проверки" письма перед сохранением
 function checkDataPopup(data) {
+  const prerpareDate = data.dateField.split("-");
+
   // Установка текста в элементы попапа
   sender.textContent = data.companySender;
-  receiver.textContent = data.companyReceiver;
-  receiverName.textContent = data.receiverName;
+  reciever.textContent = data.companyReciever;
+  recieverName.textContent = data.recieverName;
   theme.textContent = data.letterTheme;
 
-  // Для попапа оставляем HTML, но серверу передаём только текст
-  letterText.innerHTML = editorInstance ? editorInstance.getData() : "<p>Нет данных</p>";
+  // Вставка HTML из CKEditor в попап
+  letterText.innerHTML = data.letterText;
 
   // Установка даты
-  letterDate.textContent = prepareDate();
+  letterDate.textContent = `${prerpareDate[2]}.${prerpareDate[1]}.${prerpareDate[0]}`;
   saveLetterError.classList.remove("preview__error_visible");
   openPopup(checkPopup);
-}
-
-function prepareDate() {
-  const prepareDate = inputDate.value.split("-");
-  return `${prepareDate[2]}.${prepareDate[1]}.${prepareDate[0]}`;
 }
 
 // Очистка попапа "проверки" письма после сохранения
 function cleanPopup() {
   const paragraphs = letterText.querySelectorAll(".preview__paragraph");
   sender.textContent = "";
-  receiver.textContent = "";
-  receiverName.textContent = "";
+  reciever.textContent = "";
+  recieverName.textContent = "";
   theme.textContent = "";
   letterDate.textContent = "";
 

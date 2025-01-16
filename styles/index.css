@@ -201,6 +201,10 @@ input[type=file]::file-selector-button:hover {
   cursor: pointer;
 }
 
+#cke_letterText {
+  width: 100%;
+}
+
 .input__arrow {
   position: absolute;
   pointer-events: none;
@@ -324,7 +328,8 @@ input[type=file]::file-selector-button:hover {
   align-items: center;
   border-radius: 10px;
   background: #fff;
-  min-width: 1160px;
+  width: 1160px;
+  max-height: 90vh;
 }
 
 .login {
@@ -359,6 +364,7 @@ input[type=file]::file-selector-button:hover {
   display: flex;
   flex-direction: column;
   width: 100%;
+  overflow: auto;
 }
 .preview__title {
   color: #000;
@@ -374,11 +380,35 @@ input[type=file]::file-selector-button:hover {
   margin-bottom: 20px;
 }
 .preview p {
-  color: #999;
+  color: #000;
 }
 .preview span,
 .preview .preview__text {
   color: #000;
+}
+.preview span li,
+.preview .preview__text li {
+  padding-left: 30px;
+  margin-bottom: 5px;
+}
+.preview span ul,
+.preview .preview__text ul {
+  list-style-type: disc;
+  padding-left: 40px;
+}
+.preview span p,
+.preview .preview__text p {
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.preview span strong,
+.preview .preview__text strong {
+  font-weight: bold;
+}
+.preview span em,
+.preview .preview__text em {
+  font-style: italic;
 }
 .preview__paragraph {
   color: #000 !important;
@@ -397,9 +427,19 @@ input[type=file]::file-selector-button:hover {
   display: flex;
   justify-content: space-between;
   width: 100%;
+  position: relative;
 }
 .preview__buttons button {
   margin-left: 0;
+}
+.preview__buttons::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  background: linear-gradient(180deg, transparent, #fff);
 }
 .preview__buttons #changeLetter {
   background: #999999;

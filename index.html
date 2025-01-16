@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Исходящая почта</title>
     <link rel="stylesheet" href="./styles/index.css" />
+    <link rel="stylesheet" href="https://cdn.ckeditor.com/4.25.0/standard/contents.css" />
   </head>
   <body class="body">
     <header class="header">
@@ -22,13 +23,13 @@
         <div class="input-field">
           <select class="input" id="companySender">
             <option value="">Выберите компанию отправителя</option>
-            <option value="sse">ООО &laquo;СпецСтройЭксперт&raquo;</option>
-            <option value="ssePlus">ООО &laquo;СпецСтройЭксперт&raquo; (Плантация)</option>
-            <option value="npp">ООО НПП &laquo;СТРОЙСИСТЕМА&raquo;</option>
-            <option value="eternumArt">ООО &laquo;Этернум Арт&raquo;</option>
-            <option value="eternumTech">ООО &laquo;ЭТЕРНУМ ТЕХ&raquo;</option>
-            <option value="fss">ООО &laquo;ФСС-10&raquo;</option>
-            <option value="korneeva">ИП Корнеева С.В.</option>
+            <option value="ООО «СпецСтройЭксперт»">ООО &laquo;СпецСтройЭксперт&raquo;</option>
+            <option value="ООО «СпецСтройЭксперт»">ООО &laquo;СпецСтройЭксперт&raquo; (Плантация)</option>
+            <option value="ООО НПП «СТРОЙСИСТЕМА»">ООО НПП &laquo;СТРОЙСИСТЕМА&raquo;</option>
+            <option value="ООО «Этернум Арт Продакшн»">ООО &laquo;Этернум Арт&raquo;</option>
+            <option value="ООО «Этурнм Технологии»">ООО &laquo;ЭТЕРНУМ ТЕХ&raquo;</option>
+            <option value="ООО «ФСС-10»">ООО &laquo;ФСС-10&raquo;</option>
+            <option value="ИП Корнеева С.В.">ИП Корнеева С.В.</option>
           </select>
           <div class="input__arrow">
             <svg width="30" height="30" viewBox="0 0 30 35" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,13 +50,13 @@
           </div>
         </div>
         <div class="input-field">
-          <input class="input" type="text" name="company-reciever" id="companyReciever" placeholder="Введите компанию получателя" />
+          <input class="input" type="text" name="company-receiver" id="companyReceiver" placeholder="Введите компанию получателя" />
         </div>
         <div class="input-field">
           <input class="input" type="text" name="letter-theme" id="letterTheme" placeholder="Введите тему письма" />
         </div>
         <div class="input-field">
-          <input class="input" type="text" name="reciever-name" id="recieverName" placeholder="Введите ФИО и должность получателя" />
+          <input class="input" type="text" name="receiver-name" id="receiverName" placeholder="Введите ФИО и должность получателя" />
         </div>
         <div class="input-field input-field_wide">
           <textarea class="input input__textarea" placeholder="Введите текст письма" name="letterText" id="letterText" cols="30" rows="20"></textarea>
@@ -100,15 +101,13 @@
           <div class="preview__title">Проверьте письмо на правильность заполнения</div>
           <div class="preview__header">
             <p class="preview__sender">Компания отправитель: <span class="preview__sender-value">####</span></p>
-            <p class="preview__reciever">Компания получатель: <span class="preview__reciever-value">####</span></p>
-            <p class="preview__reciever-name">ФИО и должность получателя: <span class="preview__name-value">####</span></p>
+            <p class="preview__receiver">Компания получатель: <span class="preview__receiver-value">####</span></p>
+            <p class="preview__receiver-name">ФИО и должность получателя: <span class="preview__name-value">####</span></p>
             <p class="preview__theme">Тема письма: <span class="preview__theme-value">####</span></p>
           </div>
           <div class="preview__text-wrapper">
             <p>Текст письма:</p>
-            <div class="preview__text">
-              
-            </div>
+            <div class="preview__text"></div>
           </div>
           <div class="preview__footer">
             <p class="preview__date">Дата письма: <span class="preview__date-value">####</span></p>
@@ -121,13 +120,31 @@
             <span class="preview__error">Не удалось сохранить в базу</span>
           </div>
           <div class="preview__error-wrapper preview__error-wrapper_hidden">
-            <button class="button" id="downloadLetter" data-filename="##">Скачать .docx</button>
+            <button class="button" id="downloadLetter">Скачать .docx</button>
             <span class="preview__error">Не удалось загрузить файл</span>
           </div>
         </div>
       </div>
     </div>
-
+    <script src="./node_modules/ckeditor/ckeditor.js"></script>
+    <script>
+      // Инициализация CKEditor для текстовой области
+      CKEDITOR.replace("letterText", {
+        toolbar: [
+          { name: "document", items: ["Source", "-", "Preview"] },
+          { name: "clipboard", items: ["Cut", "Copy", "Paste", "-", "Undo", "Redo"] },
+          { name: "editing", items: ["Find", "Replace", "-", "SelectAll"] },
+          { name: "basicstyles", items: ["Bold", "Italic", "Underline", "-", "RemoveFormat"] },
+          { name: "paragraph", items: ["NumberedList", "BulletedList", "-", "Outdent", "Indent", "-", "Blockquote"] },
+          { name: "insert", items: ["Image", "Table", "HorizontalRule", "SpecialChar"] },
+          { name: "styles", items: ["Styles", "Format", "Font", "FontSize"] },
+          { name: "colors", items: ["TextColor", "BGColor"] },
+          { name: "alignment", items: ["JustifyLeft", "JustifyCenter", "JustifyRight", "JustifyBlock"] },
+          { name: "tools", items: ["Maximize"] },
+        ],
+        extraPlugins: "justify,image2",
+      });
+    </script>
     <script src="scripts/index.js"></script>
   </body>
 </html>

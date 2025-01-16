@@ -5,9 +5,12 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import * as fs from "fs";
 import { JSDOM } from "jsdom";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import htmlEntities from "html-entities"
 import crypto from "crypto";
 import path from "path";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
+import ImageModule from "docxtemplater-image-module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,11 +47,6 @@ app.use(express.json());
 // Чтение всей директории с файлами
 app.use(express.static(__dirname));
 
-// app.use((err, req, res, next) => {
-//   console.error("Произошла ошибка:", err.message);
-//   res.status(500).send("Internal Server Error");
-// });
-
 // Запуск сервера Node.JS
 app.listen(serverConfig.port, currentDEVIP, (err) => {
   if (err) {
@@ -72,8 +70,6 @@ app.get("/incoming-mail", (req, res) => {
 // Запрос на сохранение данных с фронта
 app.post("/save-data", async (req, res) => {
   const token = req.body.token; // Извлекаем токен из тела запроса
-  console.log("Полученный токен:", token);
-  console.log("Данные для генерации документа:", req.body);
 
   if (!token) {
     console.error("Токен отсутствует");
@@ -88,10 +84,29 @@ app.post("/save-data", async (req, res) => {
       return res.status(403).send("Invalid or expired token.");
     }
 
-    // Дальнейшая обработка данных
-    await setDataToBase(req.body); // Сохранение данных в базу
-    const filename = convertDataToDocx(req.body, token); // Генерация документа
-    res.send({ DB: true, Docx: true, filename });
+    // Сохранение данных в базу
+    await setDataToBase(req.body);
+
+    // Подготовка данных для генерации документа
+    const data = {
+      // htmlText: req.body.letterText || "<p>Нет данных</p>",
+      staticFields: {
+        patch_number: String(await getCurrentLastId()),
+        patch_date: req.body.dateField,
+        patch_receiverCompany: req.body.companyReceiver,
+        patch_receiverName: req.body.receiverName,
+        patch_title: req.body.letterTheme,
+        patch_text: req.body.letterText,
+      },
+    };
+
+    // Генерация документа
+    const templatePath = path.join(__dirname, "templates", "sse.docx");
+    const outputPath = path.join(__dirname, "docs", `document_${token}.docx`);
+
+    await generateDynamicContent(templatePath, outputPath, data);
+
+    res.send({ DB: true, Docx: true, filename: `document_${token}.docx` });
   } catch (error) {
     console.error("Ошибка при обработке запроса /save-data:", error.message);
     res.status(500).send("Internal Server Error");
@@ -176,117 +191,95 @@ async function generateTokenForUser(username) {
 }
 
 // Конвертация данных с фронта в DocX документ
-function parseHtmlToDocxChildren(html) {
+function htmlToDocxNodes(html) {
   const dom = new JSDOM(html);
   const document = dom.window.document;
-  const children = [];
-
-  function processNode(node) {
-    if (node.nodeType === 3 && node.textContent.trim()) {
-      // Текстовый узел
-      return new TextRun({ text: node.textContent.trim() });
-    }
-
-    if (node.nodeName === "B") {
-      // Жирный текст
-      return new TextRun({ text: node.textContent.trim(), bold: true });
-    }
-
-    if (node.nodeName === "I") {
-      // Курсивный текст
-      return new TextRun({ text: node.textContent.trim(), italics: true });
-    }
-
-    if (node.nodeName === "P") {
-      // Абзацы
-      const paragraphChildren = Array.from(node.childNodes).map(processNode).filter(Boolean);
-      return new Paragraph({ children: paragraphChildren });
-    }
-
-    if (node.nodeName === "UL" || node.nodeName === "OL") {
-      // Списки
-      const isBullet = node.nodeName === "UL";
-      return Array.from(node.childNodes)
-        .filter((li) => li.nodeName === "LI")
-        .map(
-          (li) =>
-            new Paragraph({
-              text: li.textContent.trim(),
-              bullet: isBullet ? { level: 0 } : undefined,
-              numbering: !isBullet ? { reference: "numbering", level: 0 } : undefined,
-            })
-        );
-    }
-
-    if (node.nodeName === "BLOCKQUOTE") {
-      // Цитаты
-      return new Paragraph({
-        text: node.textContent.trim(),
-        style: "Quote",
-      });
-    }
-
-    return null; // Игнорируем другие типы узлов
-  }
+  const nodes = [];
 
   document.body.childNodes.forEach((node) => {
-    const processedNode = processNode(node);
-    if (processedNode) {
-      if (Array.isArray(processedNode)) {
-        children.push(...processedNode); // Для списков возвращается массив
-      } else {
-        children.push(processedNode);
-      }
+    if (node.nodeName === "P") {
+      // Обработка параграфов
+      nodes.push({
+        type: "paragraph",
+        text: htmlEntities.decode(node.textContent.trim()), // Декодируем HTML-символы
+        bold: node.querySelector("strong") !== null, // Проверяем наличие <strong>
+        alignment: node.style.textAlign || "left", // Учитываем выравнивание
+      });
+    } else if (node.nodeName === "UL" || node.nodeName === "OL") {
+      // Обработка списков
+      node.childNodes.forEach((li) => {
+        if (li.nodeName === "LI") {
+          nodes.push({
+            type: "list",
+            text: htmlEntities.decode(li.textContent.trim()),
+            bullet: node.nodeName === "UL", // Если UL — маркированный список
+            numbering: node.nodeName === "OL", // Если OL — нумерованный список
+          });
+        }
+      });
+    } else if (node.nodeName === "IMG") {
+      // Обработка изображений
+      nodes.push({
+        type: "image",
+        src: node.getAttribute("src"),
+      });
     }
   });
 
-  console.log("Сформированные элементы для docx:", children);
-  return children;
+  return nodes;
 }
 
-function convertDataToDocx(data, token) {
-  const sender = data.companySender;
-  const receiver = data.companyReceiver || "Не указан";
-  const receiverName = data.receiverName;
-  const theme = data.letterTheme;
-  const letterHTML = data.letterText;
-  const user = data.currentUser;
-  const date = data.dateField;
+async function generateDynamicContent(templatePath, outputPath, data) {
+  const content = fs.readFileSync(templatePath, "binary");
+  const zip = new PizZip(content);
+
+  const imageOptions = {
+    getImage: (tagValue) => {
+      return fs.readFileSync(path.resolve(__dirname, "images", tagValue));
+    },
+    getSize: () => [200, 200],
+  };
+
+  const doc = new Docxtemplater(zip, {
+    delimiters: { start: "{{", end: "}}" },
+    paragraphLoop: true,
+    linebreaks: true,
+    modules: [new ImageModule(imageOptions)],
+  });
+
+  const htmlContent = htmlToDocxNodes(data.htmlText);
+
+  const processedContent = htmlContent.map((node) => {
+    if (node.type === "paragraph") {
+      return {
+        text: node.text,
+        bold: node.bold || false,
+        alignment: node.alignment || "left",
+      };
+    } else if (node.type === "list") {
+      return {
+        text: node.text,
+        bullet: node.bullet || false,
+        numbering: node.numbering || false,
+      };
+    } else if (node.type === "image") {
+      return { src: node.src };
+    }
+    return null;
+  })
+
+  doc.setData({
+    content: processedContent,
+    ...data.staticFields,
+  });
 
   try {
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: `Sender: ${sender}`, bold: true }),
-                new TextRun(`\nReceiver: ${receiver}`),
-                new TextRun(`\nTheme: ${theme}`),
-                new TextRun(`\nDate: ${date}`),
-              ],
-            }),
-            ...parseHtmlToDocxChildren(letterHTML),
-          ],
-        },
-      ],
-    });
-
-    const filename = `document_${token}.docx`;
-    const outputPath = path.join(__dirname, "docs", filename);
-    Packer.toBuffer(doc)
-      .then((buffer) => {
-        fs.writeFileSync(outputPath, buffer);
-        console.log("Document created successfully at:", outputPath);
-      })
-      .catch((err) => {
-        throw new Error("Error generating document buffer: " + err.message);
-      });
-
-    return filename;
+    doc.render();
+    const buffer = doc.getZip().generate({ type: "nodebuffer" });
+    fs.writeFileSync(outputPath, buffer);
+    console.log("Документ успешно создан:", outputPath);
   } catch (error) {
-    console.error("Error generating document:", error.message);
+    console.error("Ошибка генерации документа:", error);
     throw error;
   }
 }
@@ -303,14 +296,25 @@ await client.connect();
 
 // Запись данных письма в базу
 async function setDataToBase(data) {
-  const lastId = await getCurrentLastId();
-  const newId = Number(lastId.rows[0].max) + 1;
-  const sql = `
-    INSERT INTO "post" ("id", "sender", "receiver", "date", "text", "user", "theme")
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-`;
-  const values = [newId, data.companySender, data.companyReciever, data.dateField, data.letterText, data.currentUser, data.letterTheme];
-  return client.query(sql, values);
+  try {
+    // Получение текущего максимального ID
+    const lastIdResult = await client.query('SELECT MAX(id) AS max FROM "post"');
+
+    const lastId = lastIdResult.rows[0]?.max || 0; // Если таблица пуста, используем 0
+    const newId = Number(lastId) + 1;
+
+    // Вставка данных в таблицу
+    const sql = `
+      INSERT INTO "post" (id, sender, receiver, date, text, "user", theme)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `;
+    const values = [newId, data.companySender, data.companyReceiver, data.dateField, data.letterText, data.currentUser, data.letterTheme];
+
+    await client.query(sql, values);
+  } catch (error) {
+    console.error("Ошибка при сохранении данных в БД:", error.message);
+    throw error;
+  }
 }
 
 async function saveTokenToDatabase(username, token) {
@@ -343,7 +347,8 @@ async function validateToken(token) {
 // Забираем корректный ID из базы
 async function getCurrentLastId() {
   const sql = `SELECT MAX(id) FROM "post"`;
-  return client.query(sql);
+  const result = await client.query(sql);
+  return result.rows[0].max;
 }
 
 // Чтение данных о логине/пароле из базы

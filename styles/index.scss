@@ -210,6 +210,10 @@ input[type="file"]::file-selector-button {
   }
 }
 
+#cke_letterText {
+  width: 100%;
+}
+
 .input__arrow {
   position: absolute;
   pointer-events: none;
@@ -342,7 +346,8 @@ input[type="file"]::file-selector-button {
     align-items: center;
     border-radius: 10px;
     background: #fff;
-    min-width: 1160px;
+    width: 1160px;
+    max-height: 90vh;
   }
 }
 
@@ -382,6 +387,7 @@ input[type="file"]::file-selector-button {
     display: flex;
     flex-direction: column;
     width: 100%;
+    overflow: auto;
   }
   &__title {
     color: #000;
@@ -398,12 +404,32 @@ input[type="file"]::file-selector-button {
   }
 
   p {
-    color: #999;
+    color: #000;
   }
 
   span,
   .preview__text {
     color: #000;
+
+    li {
+      padding-left: 30px;
+      margin-bottom: 5px;
+    }
+    ul {
+      list-style-type: disc;
+      padding-left: 40px;
+    }
+    p {
+      margin: 10px 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    strong {
+      font-weight: bold;
+    }
+    em {
+      font-style: italic;
+    }
   }
 
   &__paragraph {
@@ -427,9 +453,20 @@ input[type="file"]::file-selector-button {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    position: relative;
 
     button {
       margin-left: 0;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -30px;
+      left: 0;
+      width: 100%;
+      height: 30px;
+      background: linear-gradient(180deg, transparent, #fff);
     }
 
     #changeLetter {
